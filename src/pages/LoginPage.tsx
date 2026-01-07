@@ -22,15 +22,19 @@ const LoginPage: React.FC = () => {
     try {
       await signIn(email, password);
     } catch (err: unknown) {
+      console.error('Login error:', err);
       if (err instanceof Error) {
-        if (err.message.includes('não autorizado')) {
+        const errorMessage = err.message.toLowerCase();
+        if (errorMessage.includes('não autorizado')) {
           setError(err.message);
-        } else if (err.message.includes('invalid-credential') || err.message.includes('wrong-password')) {
-          setError('Email ou senha incorretos.');
-        } else if (err.message.includes('user-not-found')) {
-          setError('Usuário não encontrado.');
+        } else if (errorMessage.includes('invalid-credential') || errorMessage.includes('wrong-password') || errorMessage.includes('invalid-login-credentials')) {
+          setError('Email ou senha incorretos. Verifique suas credenciais.');
+        } else if (errorMessage.includes('user-not-found')) {
+          setError('Usuário não encontrado. Crie o usuário no Firebase Console primeiro.');
+        } else if (errorMessage.includes('too-many-requests')) {
+          setError('Muitas tentativas. Aguarde alguns minutos.');
         } else {
-          setError('Erro ao fazer login. Tente novamente.');
+          setError(`Erro: ${err.message}`);
         }
       } else {
         setError('Erro ao fazer login. Tente novamente.');

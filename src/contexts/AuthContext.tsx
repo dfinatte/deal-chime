@@ -94,17 +94,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    // Check if email is authorized
-    const q = query(collection(db, 'teamMembers'), where('email', '==', email), where('ativo', '==', true));
-    const querySnapshot = await getDocs(q);
-    
     const isInitialAdmin = email === INITIAL_ADMIN_EMAIL;
     
-    if (!querySnapshot.empty || isInitialAdmin) {
-      await signInWithEmailAndPassword(auth, email, password);
-    } else {
-      throw new Error('Email não autorizado. Entre em contato com o administrador.');
+    // Para o admin inicial, permite login direto sem verificar Firestore
+    if (!isInitialAdmin) {
+      const q = query(collection(db, 'teamMembers'), where('email', '==', email), where('ativo', '==', true));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        throw new Error('Email não autorizado. Entre em contato com o administrador.');
+      }
     }
+    
+    // Tenta autenticar com Firebase
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signOut = async () => {
