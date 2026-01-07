@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { 
   Building2, 
   LayoutDashboard, 
@@ -13,7 +14,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,6 +26,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/cadastro', label: 'Novo Lead', icon: UserPlus },
   { path: '/clientes', label: 'Clientes', icon: Users },
+  { path: '/analises', label: 'Análises', icon: BarChart3 },
 ];
 
 const adminItems = [
@@ -160,18 +163,26 @@ const Sidebar: React.FC<SidebarProps> = ({ children }) => {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center h-16 px-4 border-b border-border bg-card">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <div className="ml-3 flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-primary" />
-            <span className="font-display font-bold">CRM Imobiliário</span>
+        <header className="lg:hidden flex items-center justify-between h-16 px-4 border-b border-border bg-card">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <div className="ml-3 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              <span className="font-display font-bold">CRM Imobiliário</span>
+            </div>
           </div>
+          <NotificationCenter />
+        </header>
+
+        {/* Desktop header with notifications */}
+        <header className="hidden lg:flex items-center justify-end h-14 px-6 border-b border-border bg-card">
+          <NotificationCenter />
         </header>
 
         {/* Page content */}

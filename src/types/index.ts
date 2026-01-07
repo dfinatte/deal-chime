@@ -69,3 +69,15 @@ export interface TeamMember {
   ativo: boolean;
   createdAt: Date;
 }
+
+export interface Notification {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  tipo: 'info' | 'warning' | 'success' | 'error';
+  destinatarioId: string | 'all'; // 'all' para toda equipe
+  remetenteId: string;
+  remetenteNome: string;
+  lida: boolean;
+  createdAt: Date;
+}

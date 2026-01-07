@@ -11,6 +11,7 @@ import CadastroPage from "@/pages/CadastroPage";
 import ClientesPage from "@/pages/ClientesPage";
 import ClienteDetalhePage from "@/pages/ClienteDetalhePage";
 import EquipePage from "@/pages/EquipePage";
+import AnalisesPage from "@/pages/AnalisesPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -99,6 +100,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <EquipePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analises"
+        element={
+          <ProtectedRoute>
+            <AnalisesPage />
           </ProtectedRoute>
         }
       />
