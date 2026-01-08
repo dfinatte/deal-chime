@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Sidebar from "@/components/layout/Sidebar";
+import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import CadastroPage from "@/pages/CadastroPage";
@@ -34,7 +35,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <Sidebar>{children}</Sidebar>;
 };
 
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const PublicRoute: React.FC<{ children: React.ReactNode; redirectTo?: string }> = ({ children, redirectTo = "/dashboard" }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -46,7 +47,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
@@ -56,6 +57,14 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route
+        path="/"
+        element={
+          <PublicRoute redirectTo="/dashboard">
+            <LandingPage />
+          </PublicRoute>
+        }
+      />
+      <Route
         path="/login"
         element={
           <PublicRoute>
@@ -64,7 +73,7 @@ const AppRoutes = () => {
         }
       />
       <Route
-        path="/"
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <DashboardPage />

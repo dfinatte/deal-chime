@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/cadastro', label: 'Novo Lead', icon: UserPlus },
   { path: '/clientes', label: 'Clientes', icon: Users },
   { path: '/analises', label: 'Análises', icon: BarChart3 },
