@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Building2, Lock, Mail, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const LoginPage: React.FC = () => {
@@ -48,11 +49,15 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Voltar para o início
+          </Link>
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4">
             <Building2 className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground">CRM Imobiliário</h1>
-          <p className="text-muted-foreground mt-2">Gerencie sua carteira de clientes</p>
+          <p className="text-muted-foreground mt-2">Acesse sua conta</p>
         </div>
 
         <Card className="glass-card">
@@ -109,7 +114,10 @@ const LoginPage: React.FC = () => {
         </Card>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          Acesso restrito a corretores autorizados
+          Não tem uma conta?{' '}
+          <Link to="/registro" className="text-primary hover:underline font-medium">
+            Cadastre sua imobiliária
+          </Link>
         </p>
       </div>
     </div>
