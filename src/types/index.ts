@@ -61,6 +61,8 @@ export interface Proposal {
   updatedAt: Date;
 }
 
+export type SubscriptionStatus = 'trial' | 'pending_payment' | 'active' | 'expired';
+
 export interface TeamMember {
   id: string;
   email: string;
@@ -68,6 +70,32 @@ export interface TeamMember {
   role: UserRole;
   ativo: boolean;
   createdAt: Date;
+  trialStartDate?: Date;
+  subscriptionStatus?: SubscriptionStatus;
+  companyId?: string; // Para vincular corretores a uma empresa
+}
+
+export interface Company {
+  id: string;
+  nome: string;
+  cnpj: string;
+  email: string;
+  telefone: string;
+  adminId: string;
+  trialStartDate: Date;
+  subscriptionStatus: SubscriptionStatus;
+  createdAt: Date;
+}
+
+export interface PaymentReceipt {
+  id: string;
+  userId: string;
+  companyId?: string;
+  imageUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  reviewedAt?: Date;
+  reviewedBy?: string;
 }
 
 export interface Notification {

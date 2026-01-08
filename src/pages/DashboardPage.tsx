@@ -2,9 +2,11 @@ import React from 'react';
 import { useClients } from '@/hooks/useClients';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useVisits } from '@/hooks/useVisits';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   Users, 
   TrendingUp, 
@@ -18,7 +20,8 @@ import {
   CheckCircle,
   XCircle,
   Pause,
-  Target
+  Target,
+  Clock
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -43,6 +46,7 @@ const DashboardPage: React.FC = () => {
   const { clients } = useClients();
   const { interactions } = useInteractions();
   const { visits } = useVisits();
+  const { subscriptionStatus, daysLeftInTrial } = useAuth();
 
   // Calculate metrics
   const totalClients = clients.length;
@@ -110,6 +114,18 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Trial Banner */}
+      {subscriptionStatus === 'trial' && daysLeftInTrial > 0 && (
+        <Alert className="bg-primary/10 border-primary/20">
+          <Clock className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-foreground">
+            <strong>Período de teste:</strong> Você tem{' '}
+            <span className="font-bold text-primary">{daysLeftInTrial} dias</span> restantes 
+            para experimentar todas as funcionalidades do ImobCRM.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>

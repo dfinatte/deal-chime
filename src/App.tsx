@@ -14,12 +14,13 @@ import ClientesPage from "@/pages/ClientesPage";
 import ClienteDetalhePage from "@/pages/ClienteDetalhePage";
 import EquipePage from "@/pages/EquipePage";
 import AnalisesPage from "@/pages/AnalisesPage";
+import SubscriptionPage from "@/pages/SubscriptionPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isTrialExpired, subscriptionStatus } = useAuth();
 
   if (loading) {
     return (
@@ -31,6 +32,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to subscription page if trial expired or pending payment
+  if (isTrialExpired || subscriptionStatus === 'pending_payment' || subscriptionStatus === 'expired') {
+    return <Navigate to="/assinatura" replace />;
   }
 
   return <Sidebar>{children}</Sidebar>;
@@ -49,6 +55,34 @@ const PublicRoute: React.FC<{ children: React.ReactNode; redirectTo?: string }> 
 
   if (user) {
     return <Navigate to={redirectTo} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading, subscriptionStatus, isTrialExpired } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // If subscription is active, redirect to dashboard
+  if (subscriptionStatus === 'active') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // If still in valid trial, redirect to dashboard
+  if (subscriptionStatus === 'trial' && !isTrialExpired) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -79,6 +113,14 @@ const AppRoutes = () => {
           <PublicRoute>
             <RegisterPage />
           </PublicRoute>
+        }
+      />
+      <Route
+        path="/assinatura"
+        element={
+          <SubscriptionRoute>
+            <SubscriptionPage />
+          </SubscriptionRoute>
         }
       />
       <Route
