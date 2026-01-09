@@ -15,6 +15,7 @@ import ClienteDetalhePage from "@/pages/ClienteDetalhePage";
 import EquipePage from "@/pages/EquipePage";
 import AnalisesPage from "@/pages/AnalisesPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
+import AdminPagamentosPage from "@/pages/AdminPagamentosPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -168,6 +169,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <AnalisesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/pagamentos"
+        element={
+          <ProtectedRoute>
+            <AdminPagamentosPage />
           </ProtectedRoute>
         }
       />
