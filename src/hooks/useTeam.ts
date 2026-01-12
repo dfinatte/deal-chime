@@ -20,15 +20,20 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useTeam = () => {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, companyId } = useAuth();
 
   useEffect(() => {
-    if (!user || !isAdmin) {
+    if (!user || !isAdmin || !companyId) {
       setLoading(false);
       return;
     }
 
-    const q = query(collection(db, 'teamMembers'), orderBy('createdAt', 'desc'));
+    // Filtrar membros da equipe pela empresa
+    const q = query(
+      collection(db, 'teamMembers'), 
+      where('companyId', '==', companyId),
+      orderBy('createdAt', 'desc')
+    );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: TeamMember[] = snapshot.docs.map((doc) => {
@@ -39,7 +44,10 @@ export const useTeam = () => {
           nome: docData.nome,
           role: docData.role,
           ativo: docData.ativo,
+          companyId: docData.companyId,
           createdAt: docData.createdAt?.toDate() || new Date(),
+          trialStartDate: docData.trialStartDate?.toDate(),
+          subscriptionStatus: docData.subscriptionStatus,
         };
       });
       setMembers(data);
@@ -47,10 +55,10 @@ export const useTeam = () => {
     });
 
     return unsubscribe;
-  }, [user, isAdmin]);
+  }, [user, isAdmin, companyId]);
 
   const addMember = async (memberData: { email: string; nome: string; role: UserRole; senha: string }) => {
-    if (!user || !isAdmin) throw new Error('Não autorizado');
+    if (!user || !isAdmin || !companyId) throw new Error('Não autorizado');
     
     // Check if email already exists
     const q = query(collection(db, 'teamMembers'), where('email', '==', memberData.email));
@@ -63,13 +71,16 @@ export const useTeam = () => {
     // Create Firebase Auth user
     const userCredential = await createUserWithEmailAndPassword(auth, memberData.email, memberData.senha);
     
-    // Add to teamMembers collection
+    // Add to teamMembers collection with companyId
     await addDoc(collection(db, 'teamMembers'), {
       email: memberData.email,
       nome: memberData.nome,
       role: memberData.role,
       ativo: true,
+      companyId: companyId,
       createdAt: Timestamp.now(),
+      trialStartDate: Timestamp.now(),
+      subscriptionStatus: 'active', // Membros herdam status da empresa
     });
   };
 
@@ -77,7 +88,9 @@ export const useTeam = () => {
     if (!user || !isAdmin) throw new Error('Não autorizado');
     
     const docRef = doc(db, 'teamMembers', id);
-    await updateDoc(docRef, memberData);
+    // Não permitir alterar companyId
+    const { companyId: _, ...safeData } = memberData;
+    await updateDoc(docRef, safeData);
   };
 
   const toggleMemberStatus = async (id: string, ativo: boolean) => {

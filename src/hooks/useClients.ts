@@ -18,15 +18,29 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useClients = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, companyId } = useAuth();
 
   useEffect(() => {
     if (!user) return;
 
     let q;
-    if (isAdmin) {
-      q = query(collection(db, 'clients'), orderBy('createdAt', 'desc'));
+    if (isAdmin && companyId) {
+      // Admin vê todos os clientes da empresa
+      q = query(
+        collection(db, 'clients'), 
+        where('companyId', '==', companyId),
+        orderBy('createdAt', 'desc')
+      );
+    } else if (companyId) {
+      // Corretor vê apenas seus próprios clientes
+      q = query(
+        collection(db, 'clients'), 
+        where('companyId', '==', companyId),
+        where('corretorId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
     } else {
+      // Fallback: usuário sem empresa vê apenas seus próprios clientes
       q = query(
         collection(db, 'clients'), 
         where('corretorId', '==', user.uid),
@@ -52,6 +66,7 @@ export const useClients = () => {
           ultimaAtualizacao: data.ultimaAtualizacao?.toDate() || new Date(),
           qtdeVisitas: data.qtdeVisitas || 0,
           corretorId: data.corretorId,
+          companyId: data.companyId,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
         };
@@ -61,10 +76,11 @@ export const useClients = () => {
     });
 
     return unsubscribe;
-  }, [user, isAdmin]);
+  }, [user, isAdmin, companyId]);
 
-  const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'ultimaAtualizacao' | 'qtdeVisitas'>) => {
+  const addClient = async (clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'ultimaAtualizacao' | 'qtdeVisitas' | 'companyId'>) => {
     if (!user) throw new Error('Usuário não autenticado');
+    if (!companyId) throw new Error('Usuário não vinculado a uma empresa');
     
     const now = Timestamp.now();
     await addDoc(collection(db, 'clients'), {
@@ -72,6 +88,7 @@ export const useClients = () => {
       dataCadastro: Timestamp.fromDate(new Date(clientData.dataCadastro)),
       dataChegada: Timestamp.fromDate(new Date(clientData.dataChegada)),
       corretorId: user.uid,
+      companyId: companyId,
       qtdeVisitas: 0,
       ultimaAtualizacao: now,
       createdAt: now,
@@ -82,6 +99,9 @@ export const useClients = () => {
   const updateClient = async (id: string, clientData: Partial<Client>) => {
     const docRef = doc(db, 'clients', id);
     const updateData: Record<string, unknown> = { ...clientData, updatedAt: Timestamp.now() };
+    
+    // Não permitir alterar companyId
+    delete updateData.companyId;
     
     if (clientData.dataCadastro) {
       updateData.dataCadastro = Timestamp.fromDate(new Date(clientData.dataCadastro));

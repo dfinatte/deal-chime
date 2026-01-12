@@ -18,20 +18,33 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useInteractions = (clientId?: string) => {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
 
   useEffect(() => {
     if (!user) return;
 
     let q;
     if (clientId) {
+      // Filtrar por cliente específico
       q = query(
         collection(db, 'interactions'), 
         where('clientId', '==', clientId),
         orderBy('data', 'desc')
       );
+    } else if (companyId) {
+      // Filtrar por empresa
+      q = query(
+        collection(db, 'interactions'), 
+        where('companyId', '==', companyId),
+        orderBy('data', 'desc')
+      );
     } else {
-      q = query(collection(db, 'interactions'), orderBy('data', 'desc'));
+      // Fallback: apenas interações do próprio usuário
+      q = query(
+        collection(db, 'interactions'), 
+        where('corretorId', '==', user.uid),
+        orderBy('data', 'desc')
+      );
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -44,6 +57,7 @@ export const useInteractions = (clientId?: string) => {
           meio: docData.meio,
           resumo: docData.resumo,
           corretorId: docData.corretorId,
+          companyId: docData.companyId,
           createdAt: docData.createdAt?.toDate() || new Date(),
         };
       });
@@ -52,15 +66,17 @@ export const useInteractions = (clientId?: string) => {
     });
 
     return unsubscribe;
-  }, [user, clientId]);
+  }, [user, clientId, companyId]);
 
-  const addInteraction = async (interactionData: Omit<Interaction, 'id' | 'createdAt' | 'corretorId'>) => {
+  const addInteraction = async (interactionData: Omit<Interaction, 'id' | 'createdAt' | 'corretorId' | 'companyId'>) => {
     if (!user) throw new Error('Usuário não autenticado');
+    if (!companyId) throw new Error('Usuário não vinculado a uma empresa');
     
     await addDoc(collection(db, 'interactions'), {
       ...interactionData,
       data: Timestamp.fromDate(new Date(interactionData.data)),
       corretorId: user.uid,
+      companyId: companyId,
       createdAt: Timestamp.now(),
     });
 
