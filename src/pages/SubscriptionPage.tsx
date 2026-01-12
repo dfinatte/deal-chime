@@ -45,6 +45,28 @@ const SubscriptionPage: React.FC = () => {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size (max 5MB)
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "O arquivo deve ter no máximo 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Tipo de arquivo inválido",
+          description: "Apenas imagens (JPEG, PNG, GIF, WebP) são permitidas.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
@@ -76,8 +98,7 @@ const SubscriptionPage: React.FC = () => {
         });
       };
       reader.readAsDataURL(selectedFile);
-    } catch (error) {
-      console.error('Error uploading receipt:', error);
+    } catch {
       toast({
         title: "Erro ao enviar",
         description: "Não foi possível enviar o comprovante. Tente novamente.",
