@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { DemoProvider } from "@/contexts/DemoContext";
 import Sidebar from "@/components/layout/Sidebar";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
@@ -16,6 +17,7 @@ import EquipePage from "@/pages/EquipePage";
 import AnalisesPage from "@/pages/AnalisesPage";
 import SubscriptionPage from "@/pages/SubscriptionPage";
 import AdminPagamentosPage from "@/pages/AdminPagamentosPage";
+import DemoPage from "@/pages/DemoPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -117,6 +119,10 @@ const AppRoutes = () => {
         }
       />
       <Route
+        path="/demo"
+        element={<DemoPage />}
+      />
+      <Route
         path="/assinatura"
         element={
           <SubscriptionRoute>
@@ -188,13 +194,15 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
+      <DemoProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </TooltipProvider>
+      </DemoProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

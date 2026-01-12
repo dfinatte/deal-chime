@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useDemo } from '@/contexts/DemoContext';
 import { 
   Building2, 
   Users, 
@@ -13,11 +14,18 @@ import {
   Smartphone,
   ArrowRight,
   CheckCircle2,
-  Star
+  Star,
+  Eye
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const { enableDemoMode } = useDemo();
+
+  const handleDemo = () => {
+    enableDemoMode();
+    navigate('/demo');
+  };
 
   const features = [
     {
@@ -130,7 +138,8 @@ const LandingPage: React.FC = () => {
               Começar Gratuitamente
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="text-lg px-8 h-14">
+            <Button size="lg" variant="outline" className="text-lg px-8 h-14" onClick={handleDemo}>
+              <Eye className="mr-2 w-5 h-5" />
               Ver Demonstração
             </Button>
           </div>
