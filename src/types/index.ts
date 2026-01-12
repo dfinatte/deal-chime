@@ -27,6 +27,26 @@ export interface Client {
   companyId: string;
   createdAt: Date;
   updatedAt: Date;
+  // Campos do perfil do imóvel
+  dormitorios?: number;
+  suites?: number;
+  banheiros?: number;
+  vagasGaragem?: number;
+  demaisCaracteristicas?: string;
+  // Dados da venda (quando comprou_comigo)
+  dadosVenda?: {
+    dataVenda: Date;
+    codigoImovel: string;
+    enResponsavel: string;
+    valorVenda: number;
+    comissaoContrato: number;
+    minhaComissao: number;
+    valorPrevisto: number;
+    valorRecebido: number;
+    dataPrevRecebimento?: Date;
+    dataRecebimento?: Date;
+    observacoes: string;
+  };
 }
 
 export interface Interaction {
