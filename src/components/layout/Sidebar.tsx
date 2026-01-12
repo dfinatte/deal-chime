@@ -15,8 +15,7 @@ import {
   Menu,
   X,
   ChevronRight,
-  BarChart3,
-  CreditCard
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -32,7 +31,6 @@ const navItems = [
 
 const adminItems = [
   { path: '/equipe', label: 'Equipe', icon: Settings },
-  { path: '/admin/pagamentos', label: 'Pagamentos', icon: CreditCard },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ children }) => {
