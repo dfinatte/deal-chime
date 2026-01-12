@@ -110,6 +110,20 @@ export const useClients = () => {
       updateData.dataChegada = Timestamp.fromDate(new Date(clientData.dataChegada));
     }
     
+    // Converter datas dos dados de venda
+    if (clientData.dadosVenda) {
+      updateData.dadosVenda = {
+        ...clientData.dadosVenda,
+        dataVenda: Timestamp.fromDate(new Date(clientData.dadosVenda.dataVenda)),
+        dataPrevRecebimento: clientData.dadosVenda.dataPrevRecebimento 
+          ? Timestamp.fromDate(new Date(clientData.dadosVenda.dataPrevRecebimento))
+          : null,
+        dataRecebimento: clientData.dadosVenda.dataRecebimento 
+          ? Timestamp.fromDate(new Date(clientData.dadosVenda.dataRecebimento))
+          : null,
+      };
+    }
+    
     await updateDoc(docRef, updateData);
   };
 

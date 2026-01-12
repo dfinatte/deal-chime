@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import SaleDataDialog from '@/components/clients/SaleDataDialog';
 import { 
   ArrowLeft, 
   Phone, 
@@ -39,7 +40,11 @@ import {
   PhoneCall,
   Mail,
   Users,
-  Trash2
+  Trash2,
+  Bed,
+  Bath,
+  Car,
+  DollarSign
 } from 'lucide-react';
 import { Client, Temperature, JourneyStatus, Interaction, Visit } from '@/types';
 
@@ -58,6 +63,8 @@ const ClienteDetalhePage: React.FC = () => {
   // Dialog states
   const [interactionOpen, setInteractionOpen] = useState(false);
   const [visitOpen, setVisitOpen] = useState(false);
+  const [saleDialogOpen, setSaleDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<JourneyStatus | null>(null);
   
   // Form states
   const [newInteraction, setNewInteraction] = useState({
@@ -97,6 +104,26 @@ const ClienteDetalhePage: React.FC = () => {
           companyId: data.companyId || '',
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
+          // Campos do imóvel
+          dormitorios: data.dormitorios,
+          suites: data.suites,
+          banheiros: data.banheiros,
+          vagasGaragem: data.vagasGaragem,
+          demaisCaracteristicas: data.demaisCaracteristicas,
+          // Dados da venda
+          dadosVenda: data.dadosVenda ? {
+            dataVenda: data.dadosVenda.dataVenda?.toDate() || new Date(),
+            codigoImovel: data.dadosVenda.codigoImovel,
+            enResponsavel: data.dadosVenda.enResponsavel,
+            valorVenda: data.dadosVenda.valorVenda,
+            comissaoContrato: data.dadosVenda.comissaoContrato,
+            minhaComissao: data.dadosVenda.minhaComissao,
+            valorPrevisto: data.dadosVenda.valorPrevisto,
+            valorRecebido: data.dadosVenda.valorRecebido,
+            dataPrevRecebimento: data.dadosVenda.dataPrevRecebimento?.toDate(),
+            dataRecebimento: data.dadosVenda.dataRecebimento?.toDate(),
+            observacoes: data.dadosVenda.observacoes,
+          } : undefined,
         });
       }
       setLoading(false);
@@ -110,6 +137,55 @@ const ClienteDetalhePage: React.FC = () => {
       setEditData(client);
       setEditing(true);
     }
+  };
+
+  const handleStatusChange = (newStatus: JourneyStatus) => {
+    if (newStatus === 'comprou_comigo') {
+      setPendingStatus(newStatus);
+      setSaleDialogOpen(true);
+    } else {
+      setEditData({ ...editData, statusJornada: newStatus });
+    }
+  };
+
+  const handleSaleConfirm = (saleData: {
+    dataVenda: string;
+    codigoImovel: string;
+    enResponsavel: string;
+    valorVenda: string;
+    comissaoContrato: string;
+    minhaComissao: string;
+    valorPrevisto: string;
+    valorRecebido: string;
+    dataPrevRecebimento: string;
+    dataRecebimento: string;
+    observacoes: string;
+  }) => {
+    setEditData({
+      ...editData,
+      statusJornada: 'comprou_comigo',
+      dadosVenda: {
+        dataVenda: new Date(saleData.dataVenda),
+        codigoImovel: saleData.codigoImovel,
+        enResponsavel: saleData.enResponsavel,
+        valorVenda: parseFloat(saleData.valorVenda) || 0,
+        comissaoContrato: parseFloat(saleData.comissaoContrato) || 0,
+        minhaComissao: parseFloat(saleData.minhaComissao) || 0,
+        valorPrevisto: parseFloat(saleData.valorPrevisto) || 0,
+        valorRecebido: parseFloat(saleData.valorRecebido) || 0,
+        dataPrevRecebimento: saleData.dataPrevRecebimento ? new Date(saleData.dataPrevRecebimento) : undefined,
+        dataRecebimento: saleData.dataRecebimento ? new Date(saleData.dataRecebimento) : undefined,
+        observacoes: saleData.observacoes,
+      },
+    });
+    setSaleDialogOpen(false);
+    setPendingStatus(null);
+    toast.success('Dados da venda adicionados!');
+  };
+
+  const handleSaleCancel = () => {
+    setSaleDialogOpen(false);
+    setPendingStatus(null);
   };
 
   const handleSave = async () => {
@@ -214,6 +290,13 @@ const ClienteDetalhePage: React.FC = () => {
     }
   };
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -239,6 +322,14 @@ const ClienteDetalhePage: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {/* Sale Data Dialog */}
+      <SaleDataDialog
+        open={saleDialogOpen}
+        onOpenChange={setSaleDialogOpen}
+        onConfirm={handleSaleConfirm}
+        onCancel={handleSaleCancel}
+      />
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/clientes')}>
@@ -322,7 +413,7 @@ const ClienteDetalhePage: React.FC = () => {
             {editing ? (
               <Select
                 value={editData.statusJornada}
-                onValueChange={(v) => setEditData({ ...editData, statusJornada: v as JourneyStatus })}
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger className="mt-2">
                   <SelectValue />
@@ -370,6 +461,10 @@ const ClienteDetalhePage: React.FC = () => {
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList>
           <TabsTrigger value="info">Informações</TabsTrigger>
+          <TabsTrigger value="imovel">Perfil do Imóvel</TabsTrigger>
+          {client.statusJornada === 'comprou_comigo' && client.dadosVenda && (
+            <TabsTrigger value="venda">Dados da Venda</TabsTrigger>
+          )}
           <TabsTrigger value="timeline">Timeline ({interactions.length})</TabsTrigger>
           <TabsTrigger value="visitas">Visitas ({visits.length})</TabsTrigger>
         </TabsList>
@@ -438,6 +533,198 @@ const ClienteDetalhePage: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="imovel">
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle>Perfil do Imóvel Desejado</CardTitle>
+              <CardDescription>Características do imóvel que o cliente busca</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Bed className="w-4 h-4" />
+                    Dormitórios
+                  </Label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editData.dormitorios ?? ''}
+                      onChange={(e) => setEditData({ ...editData, dormitorios: parseInt(e.target.value) || undefined })}
+                      placeholder="0"
+                    />
+                  ) : (
+                    <p className="font-medium text-lg">{client.dormitorios ?? '-'}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Bed className="w-4 h-4" />
+                    Suítes
+                  </Label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editData.suites ?? ''}
+                      onChange={(e) => setEditData({ ...editData, suites: parseInt(e.target.value) || undefined })}
+                      placeholder="0"
+                    />
+                  ) : (
+                    <p className="font-medium text-lg">{client.suites ?? '-'}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Bath className="w-4 h-4" />
+                    Banheiros
+                  </Label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editData.banheiros ?? ''}
+                      onChange={(e) => setEditData({ ...editData, banheiros: parseInt(e.target.value) || undefined })}
+                      placeholder="0"
+                    />
+                  ) : (
+                    <p className="font-medium text-lg">{client.banheiros ?? '-'}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Car className="w-4 h-4" />
+                    Vagas de Garagem
+                  </Label>
+                  {editing ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={editData.vagasGaragem ?? ''}
+                      onChange={(e) => setEditData({ ...editData, vagasGaragem: parseInt(e.target.value) || undefined })}
+                      placeholder="0"
+                    />
+                  ) : (
+                    <p className="font-medium text-lg">{client.vagasGaragem ?? '-'}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Demais Características</Label>
+                {editing ? (
+                  <Textarea
+                    value={editData.demaisCaracteristicas || ''}
+                    onChange={(e) => setEditData({ ...editData, demaisCaracteristicas: e.target.value })}
+                    placeholder="Ex: Sacada, churrasqueira, piscina, academia..."
+                    rows={3}
+                  />
+                ) : (
+                  <p className="font-medium">{client.demaisCaracteristicas || '-'}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {client.statusJornada === 'comprou_comigo' && client.dadosVenda && (
+          <TabsContent value="venda">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-green-500" />
+                  Dados da Venda
+                </CardTitle>
+                <CardDescription>Informações sobre a venda realizada</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <Card className="bg-green-500/10 border-green-500/20">
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground">Valor da Venda</p>
+                      <p className="text-xl font-bold text-green-600">
+                        {formatCurrency(client.dadosVenda.valorVenda)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-blue-500/10 border-blue-500/20">
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground">Minha Comissão</p>
+                      <p className="text-xl font-bold text-blue-600">
+                        {client.dadosVenda.minhaComissao}%
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-amber-500/10 border-amber-500/20">
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground">Valor Previsto</p>
+                      <p className="text-xl font-bold text-amber-600">
+                        {formatCurrency(client.dadosVenda.valorPrevisto)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-emerald-500/10 border-emerald-500/20">
+                    <CardContent className="pt-4">
+                      <p className="text-sm text-muted-foreground">Valor Recebido</p>
+                      <p className="text-xl font-bold text-emerald-600">
+                        {formatCurrency(client.dadosVenda.valorRecebido)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Data da Venda</Label>
+                    <p className="font-medium">
+                      {format(client.dadosVenda.dataVenda, 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Código do Imóvel</Label>
+                    <p className="font-medium">{client.dadosVenda.codigoImovel || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">EN Responsável</Label>
+                    <p className="font-medium">{client.dadosVenda.enResponsavel || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">% Comissão Contrato</Label>
+                    <p className="font-medium">{client.dadosVenda.comissaoContrato}%</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Data Prev. Recebimento</Label>
+                    <p className="font-medium">
+                      {client.dadosVenda.dataPrevRecebimento 
+                        ? format(client.dadosVenda.dataPrevRecebimento, 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Data Recebimento</Label>
+                    <p className="font-medium">
+                      {client.dadosVenda.dataRecebimento 
+                        ? format(client.dadosVenda.dataRecebimento, 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {client.dadosVenda.observacoes && (
+                  <div>
+                    <Label className="text-muted-foreground">Observações</Label>
+                    <p className="font-medium p-3 bg-muted/50 rounded-lg">{client.dadosVenda.observacoes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         <TabsContent value="timeline">
           <Card className="glass-card">
