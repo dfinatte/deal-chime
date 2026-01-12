@@ -8,8 +8,7 @@ import {
   doc,
   orderBy,
   Timestamp,
-  where,
-  or
+  where
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Notification } from '@/types';
@@ -18,17 +17,18 @@ import { useAuth } from '@/contexts/AuthContext';
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, teamMember } = useAuth();
+  const { user, teamMember, companyId } = useAuth();
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !companyId) {
       setLoading(false);
       return;
     }
 
-    // Busca notificações para este usuário ou para todos
+    // Busca notificações da empresa
     const q = query(
       collection(db, 'notifications'),
+      where('companyId', '==', companyId),
       orderBy('createdAt', 'desc')
     );
 
@@ -44,10 +44,12 @@ export const useNotifications = () => {
             destinatarioId: docData.destinatarioId,
             remetenteId: docData.remetenteId,
             remetenteNome: docData.remetenteNome,
+            companyId: docData.companyId,
             lida: docData.lida,
             createdAt: docData.createdAt?.toDate() || new Date(),
           };
         })
+        // Filtrar: notificações para todos ou para este usuário específico
         .filter(n => n.destinatarioId === 'all' || n.destinatarioId === user.uid);
       
       setNotifications(data);
@@ -55,7 +57,7 @@ export const useNotifications = () => {
     });
 
     return unsubscribe;
-  }, [user]);
+  }, [user, companyId]);
 
   const sendNotification = async (data: {
     titulo: string;
@@ -63,12 +65,13 @@ export const useNotifications = () => {
     tipo: 'info' | 'warning' | 'success' | 'error';
     destinatarioId: string | 'all';
   }) => {
-    if (!user || !teamMember) throw new Error('Não autorizado');
+    if (!user || !teamMember || !companyId) throw new Error('Não autorizado');
 
     await addDoc(collection(db, 'notifications'), {
       ...data,
       remetenteId: user.uid,
       remetenteNome: teamMember.nome,
+      companyId: companyId,
       lida: false,
       createdAt: Timestamp.now(),
     });

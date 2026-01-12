@@ -11,7 +11,7 @@ import { TeamMember, UserRole, SubscriptionStatus } from '@/types';
 
 interface AuthContextType {
   user: User | null;
-  teamMember: (TeamMember & { companyId?: string }) | null;
+  teamMember: TeamMember | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -19,6 +19,7 @@ interface AuthContextType {
   subscriptionStatus: SubscriptionStatus | null;
   isTrialExpired: boolean;
   daysLeftInTrial: number;
+  companyId: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -37,13 +38,14 @@ const calculateDaysLeft = (trialStartDate: Date): number => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [teamMember, setTeamMember] = useState<(TeamMember & { companyId?: string }) | null>(null);
+  const [teamMember, setTeamMember] = useState<TeamMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [daysLeftInTrial, setDaysLeftInTrial] = useState(TRIAL_DAYS);
 
   const isAdmin = teamMember?.role === 'admin';
   const isTrialExpired = subscriptionStatus === 'trial' && daysLeftInTrial <= 0;
+  const companyId = teamMember?.companyId || (isAdmin ? user?.uid : null) || null;
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -158,7 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin,
       subscriptionStatus,
       isTrialExpired,
-      daysLeftInTrial
+      daysLeftInTrial,
+      companyId
     }}>
       {children}
     </AuthContext.Provider>

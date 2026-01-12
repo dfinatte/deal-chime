@@ -24,6 +24,7 @@ export interface Client {
   ultimaAtualizacao: Date;
   qtdeVisitas: number;
   corretorId: string;
+  companyId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,7 @@ export interface Interaction {
   meio: 'whatsapp' | 'ligacao' | 'email' | 'presencial';
   resumo: string;
   corretorId: string;
+  companyId: string;
   createdAt: Date;
 }
 
@@ -46,6 +48,7 @@ export interface Visit {
   enderecoImovel: string;
   feedback: string;
   corretorId: string;
+  companyId: string;
   createdAt: Date;
 }
 
@@ -106,6 +109,7 @@ export interface Notification {
   destinatarioId: string | 'all'; // 'all' para toda equipe
   remetenteId: string;
   remetenteNome: string;
+  companyId: string;
   lida: boolean;
   createdAt: Date;
 }

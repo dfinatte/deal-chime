@@ -94,6 +94,7 @@ const ClienteDetalhePage: React.FC = () => {
           ultimaAtualizacao: data.ultimaAtualizacao?.toDate() || new Date(),
           qtdeVisitas: data.qtdeVisitas || 0,
           corretorId: data.corretorId,
+          companyId: data.companyId || '',
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
         });
