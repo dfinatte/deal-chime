@@ -25,6 +25,21 @@ service cloud.firestore {
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
+    
+    // Helper: Validate string field with max length
+    function isValidString(value, maxLen) {
+      return value is string && value.size() >= 1 && value.size() <= maxLen;
+    }
+    
+    // Helper: Validate email format
+    function isValidEmail(email) {
+      return email is string && email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+    
+    // Helper: Validate phone (only digits, 10-15 chars)
+    function isValidPhone(phone) {
+      return phone is string && phone.matches('^[0-9]{10,15}$');
+    }
 
     // Team Members Collection
     match /teamMembers/{memberId} {
@@ -34,11 +49,14 @@ service cloud.firestore {
         belongsToCompany(resource.data.companyId)
       );
       
-      // Allow create only for admins or self-registration (new companies)
+      // Allow create with validation
       allow create: if isAuthenticated() && (
         isAdmin() || 
         request.auth.uid == memberId
-      );
+      ) && 
+        isValidString(request.resource.data.nome, 100) &&
+        isValidEmail(request.resource.data.email) &&
+        request.resource.data.role in ['admin', 'corretor', 'gestor'];
       
       // Allow update: users cannot modify their own role or companyId
       allow update: if isAuthenticated() && (
@@ -57,7 +75,8 @@ service cloud.firestore {
     // Companies Collection
     match /companies/{companyId} {
       allow read: if belongsToCompany(companyId);
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        isValidString(request.resource.data.nome, 100);
       allow update, delete: if isAdmin() && belongsToCompany(companyId);
     }
 
@@ -66,14 +85,15 @@ service cloud.firestore {
       // Read: authenticated users can only see clients from their company
       allow read: if isAuthenticated() && belongsToCompany(resource.data.companyId);
       
-      // Create: authenticated users can create clients for their company
+      // Create: with validation
       allow create: if isAuthenticated() && 
-        request.resource.data.companyId == getTeamMember().companyId;
+        request.resource.data.companyId == getTeamMember().companyId &&
+        isValidString(request.resource.data.nome, 100);
       
       // Update: users can update clients in their company
       allow update: if isAuthenticated() && 
         belongsToCompany(resource.data.companyId) &&
-        request.resource.data.companyId == resource.data.companyId; // Prevent changing companyId
+        request.resource.data.companyId == resource.data.companyId;
       
       // Delete: only admins can delete clients
       allow delete: if isAdmin() && belongsToCompany(resource.data.companyId);
@@ -103,39 +123,31 @@ service cloud.firestore {
 
     // Notifications Collection
     match /notifications/{notificationId} {
-      // Read: users can see notifications for their company that are addressed to them or all
       allow read: if isAuthenticated() && 
         belongsToCompany(resource.data.companyId) &&
         (resource.data.destinatarioId == 'all' || resource.data.destinatarioId == request.auth.uid);
       
-      // Create: only admins can send notifications
       allow create: if isAdmin() && 
         request.resource.data.companyId == getTeamMember().companyId;
       
-      // Update: users can mark their own notifications as read
       allow update: if isAuthenticated() && 
         belongsToCompany(resource.data.companyId) &&
         (resource.data.destinatarioId == 'all' || resource.data.destinatarioId == request.auth.uid);
       
-      // Delete: only admins can delete notifications
       allow delete: if isAdmin() && belongsToCompany(resource.data.companyId);
     }
 
     // Payment Receipts Collection
     match /paymentReceipts/{receiptId} {
-      // Users can read their own receipts
       allow read: if isAuthenticated() && isOwner(resource.data.userId);
       
-      // Users can create receipts for themselves
       allow create: if isAuthenticated() && 
         request.resource.data.userId == request.auth.uid;
       
-      // Only super admin (davimendesfinatte@gmail.com) can approve/reject
-      // Regular users cannot update receipts
+      // Only super admin can approve/reject
       allow update: if isAuthenticated() && 
         request.auth.token.email == 'davimendesfinatte@gmail.com';
       
-      // No delete allowed
       allow delete: if false;
     }
 
