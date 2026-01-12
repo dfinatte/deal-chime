@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
     try {
       await signIn(email, password);
     } catch (err: unknown) {
-      console.error('Login error:', err);
+      // Error handled below - no console logging in production
       if (err instanceof Error) {
         const errorMessage = err.message.toLowerCase();
         if (errorMessage.includes('não autorizado')) {

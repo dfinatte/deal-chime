@@ -60,9 +60,8 @@ const CadastroPage: React.FC = () => {
       
       toast.success('Lead cadastrado com sucesso!');
       navigate('/clientes');
-    } catch (error) {
+    } catch {
       toast.error('Erro ao cadastrar lead');
-      console.error(error);
     } finally {
       setLoading(false);
     }
