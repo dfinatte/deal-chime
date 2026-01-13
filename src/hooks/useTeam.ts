@@ -7,7 +7,6 @@ import {
   updateDoc, 
   doc, 
   deleteDoc,
-  orderBy,
   Timestamp,
   where,
   getDocs
@@ -28,18 +27,17 @@ export const useTeam = () => {
       return;
     }
 
-    // Filtrar membros da equipe pela empresa
+    // Query simples sem orderBy para evitar necessidade de índice composto
     const q = query(
       collection(db, 'teamMembers'), 
-      where('companyId', '==', companyId),
-      orderBy('createdAt', 'desc')
+      where('companyId', '==', companyId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: TeamMember[] = snapshot.docs.map((doc) => {
-        const docData = doc.data();
+      const data: TeamMember[] = snapshot.docs.map((docSnap) => {
+        const docData = docSnap.data();
         return {
-          id: doc.id,
+          id: docSnap.id,
           email: docData.email,
           nome: docData.nome,
           role: docData.role,
@@ -50,7 +48,14 @@ export const useTeam = () => {
           subscriptionStatus: docData.subscriptionStatus,
         };
       });
+      
+      // Ordenar no cliente
+      data.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      
       setMembers(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao buscar membros:', error);
       setLoading(false);
     });
 

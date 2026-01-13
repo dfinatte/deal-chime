@@ -6,7 +6,6 @@ import {
   addDoc, 
   updateDoc, 
   doc,
-  orderBy,
   Timestamp,
   where
 } from 'firebase/firestore';
@@ -25,19 +24,18 @@ export const useNotifications = () => {
       return;
     }
 
-    // Busca notificações da empresa
+    // Query simples sem orderBy para evitar necessidade de índice composto
     const q = query(
       collection(db, 'notifications'),
-      where('companyId', '==', companyId),
-      orderBy('createdAt', 'desc')
+      where('companyId', '==', companyId)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data: Notification[] = snapshot.docs
-        .map((doc) => {
-          const docData = doc.data();
+        .map((docSnap) => {
+          const docData = docSnap.data();
           return {
-            id: doc.id,
+            id: docSnap.id,
             titulo: docData.titulo,
             mensagem: docData.mensagem,
             tipo: docData.tipo,
@@ -52,7 +50,13 @@ export const useNotifications = () => {
         // Filtrar: notificações para todos ou para este usuário específico
         .filter(n => n.destinatarioId === 'all' || n.destinatarioId === user.uid);
       
+      // Ordenar no cliente
+      data.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      
       setNotifications(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao buscar notificações:', error);
       setLoading(false);
     });
 

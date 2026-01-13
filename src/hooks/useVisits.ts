@@ -7,7 +7,6 @@ import {
   updateDoc, 
   doc, 
   deleteDoc,
-  orderBy,
   Timestamp,
   where,
   increment
@@ -24,35 +23,30 @@ export const useVisits = (clientId?: string) => {
   useEffect(() => {
     if (!user) return;
 
+    // Queries simples sem orderBy para evitar necessidade de índice composto
     let q;
     if (clientId) {
-      // Filtrar por cliente específico
       q = query(
         collection(db, 'visits'), 
-        where('clientId', '==', clientId),
-        orderBy('data', 'desc')
+        where('clientId', '==', clientId)
       );
     } else if (companyId) {
-      // Filtrar por empresa
       q = query(
         collection(db, 'visits'), 
-        where('companyId', '==', companyId),
-        orderBy('data', 'desc')
+        where('companyId', '==', companyId)
       );
     } else {
-      // Fallback: apenas visitas do próprio usuário
       q = query(
         collection(db, 'visits'), 
-        where('corretorId', '==', user.uid),
-        orderBy('data', 'desc')
+        where('corretorId', '==', user.uid)
       );
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: Visit[] = snapshot.docs.map((doc) => {
-        const docData = doc.data();
+      const data: Visit[] = snapshot.docs.map((docSnap) => {
+        const docData = docSnap.data();
         return {
-          id: doc.id,
+          id: docSnap.id,
           clientId: docData.clientId,
           data: docData.data?.toDate() || new Date(),
           codigoImovel: docData.codigoImovel,
@@ -63,7 +57,14 @@ export const useVisits = (clientId?: string) => {
           createdAt: docData.createdAt?.toDate() || new Date(),
         };
       });
+      
+      // Ordenar no cliente
+      data.sort((a, b) => b.data.getTime() - a.data.getTime());
+      
       setVisits(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao buscar visitas:', error);
       setLoading(false);
     });
 
