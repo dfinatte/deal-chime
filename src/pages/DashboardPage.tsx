@@ -2,6 +2,8 @@ import React from 'react';
 import { useClients } from '@/hooks/useClients';
 import { useInteractions } from '@/hooks/useInteractions';
 import { useVisits } from '@/hooks/useVisits';
+import { useTeam } from '@/hooks/useTeam';
+import { useNotifications } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +23,9 @@ import {
   XCircle,
   Pause,
   Target,
-  Clock
+  Clock,
+  Database,
+  FileJson
 } from 'lucide-react';
 import { 
   PieChart, 
@@ -38,15 +42,25 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { exportToExcel, exportToGoogleSheets } from '@/utils/export';
+import { exportToExcel, exportToGoogleSheets, exportFullBackup, exportComprehensiveBackup } from '@/utils/export';
 import { differenceInDays, subDays, format, startOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 const DashboardPage: React.FC = () => {
   const { clients } = useClients();
   const { interactions } = useInteractions();
   const { visits } = useVisits();
-  const { subscriptionStatus, daysLeftInTrial } = useAuth();
+  const { members } = useTeam();
+  const { notifications } = useNotifications();
+  const { subscriptionStatus, daysLeftInTrial, isAdmin } = useAuth();
 
   // Calculate metrics
   const totalClients = clients.length;
@@ -112,6 +126,14 @@ const DashboardPage: React.FC = () => {
     exportToGoogleSheets(clients, interactions, visits);
   };
 
+  const handleFullBackupJson = () => {
+    exportFullBackup(clients, interactions, visits, isAdmin ? members : undefined, isAdmin ? notifications : undefined);
+  };
+
+  const handleFullBackupExcel = () => {
+    exportComprehensiveBackup(clients, interactions, visits, isAdmin ? members : undefined, isAdmin ? notifications : undefined);
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Trial Banner */}
@@ -135,12 +157,36 @@ const DashboardPage: React.FC = () => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleExportGoogleSheets} className="gap-2">
             <FileSpreadsheet className="w-4 h-4" />
-            <span className="hidden sm:inline">Google Sheets</span>
+            <span className="hidden sm:inline">CSV</span>
           </Button>
-          <Button onClick={handleExportExcel} className="gap-2">
+          <Button variant="outline" onClick={handleExportExcel} className="gap-2">
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Excel</span>
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gap-2 bg-primary">
+                <Database className="w-4 h-4" />
+                <span className="hidden sm:inline">Backup</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-card border border-border">
+              <DropdownMenuLabel>Backup Completo</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleFullBackupExcel} className="cursor-pointer">
+                <Download className="w-4 h-4 mr-2" />
+                Backup Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleFullBackupJson} className="cursor-pointer">
+                <FileJson className="w-4 h-4 mr-2" />
+                Backup JSON (.json)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <p className="px-2 py-1 text-xs text-muted-foreground">
+                Inclui clientes, interações, visitas{isAdmin ? ', equipe e notificações' : ''}.
+              </p>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

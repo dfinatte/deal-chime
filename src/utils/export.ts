@@ -1,9 +1,10 @@
 import * as XLSX from 'xlsx';
-import { Client, Interaction, Visit } from '@/types';
+import { Client, Interaction, Visit, TeamMember, Notification } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const formatDate = (date: Date) => format(date, 'dd/MM/yyyy', { locale: ptBR });
+const formatDateTime = (date: Date) => format(date, 'dd/MM/yyyy HH:mm', { locale: ptBR });
 
 const getTemperaturaLabel = (temp: string) => {
   const labels: Record<string, string> = {
@@ -42,6 +43,15 @@ export const exportToExcel = (clients: Client[], interactions: Interaction[], vi
     'Última Atualização': formatDate(client.ultimaAtualizacao),
     'Qtde Visitas': client.qtdeVisitas,
     'Observações': client.observacoes,
+    // Dados de venda
+    'Código Imóvel Venda': client.dadosVenda?.codigoImovel || '',
+    'EN Responsável': client.dadosVenda?.enResponsavel || '',
+    'Valor Venda': client.dadosVenda?.valorVenda || '',
+    'Comissão Contrato %': client.dadosVenda?.comissaoContrato || '',
+    'Minha Comissão %': client.dadosVenda?.minhaComissao || '',
+    'Valor Previsto': client.dadosVenda?.valorPrevisto || '',
+    'Valor Recebido': client.dadosVenda?.valorRecebido || '',
+    'Data Venda': client.dadosVenda?.dataVenda ? formatDate(new Date(client.dadosVenda.dataVenda)) : '',
   }));
   
   const clientsSheet = XLSX.utils.json_to_sheet(clientsData);
@@ -111,4 +121,172 @@ export const exportToGoogleSheets = (clients: Client[], interactions: Interactio
   link.href = URL.createObjectURL(blob);
   link.download = `crm_imobiliario_${format(new Date(), 'yyyy-MM-dd_HHmm')}.csv`;
   link.click();
+};
+
+// Full backup export in JSON format
+export interface BackupData {
+  exportDate: string;
+  version: string;
+  data: {
+    clients: Client[];
+    interactions: Interaction[];
+    visits: Visit[];
+    teamMembers?: TeamMember[];
+    notifications?: Notification[];
+  };
+}
+
+export const exportFullBackup = (
+  clients: Client[], 
+  interactions: Interaction[], 
+  visits: Visit[],
+  teamMembers?: TeamMember[],
+  notifications?: Notification[]
+) => {
+  const backupData: BackupData = {
+    exportDate: new Date().toISOString(),
+    version: '1.0',
+    data: {
+      clients,
+      interactions,
+      visits,
+      teamMembers,
+      notifications,
+    }
+  };
+
+  const jsonContent = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([jsonContent], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `backup_completo_${format(new Date(), 'yyyy-MM-dd_HHmm')}.json`;
+  link.click();
+};
+
+// Export all data to a single comprehensive Excel file
+export const exportComprehensiveBackup = (
+  clients: Client[], 
+  interactions: Interaction[], 
+  visits: Visit[],
+  teamMembers?: TeamMember[],
+  notifications?: Notification[]
+) => {
+  const workbook = XLSX.utils.book_new();
+
+  // Clients sheet with all data
+  const clientsData = clients.map(client => ({
+    'ID': client.id,
+    'Nome': client.nome,
+    'Telefone': client.telefone,
+    'Data Cadastro': formatDateTime(client.dataCadastro),
+    'Data Chegada': formatDateTime(client.dataChegada),
+    'Canal': client.canal,
+    'Perfil de Busca': client.perfilBusca,
+    'Budget': client.budget,
+    'Temperatura': getTemperaturaLabel(client.temperatura),
+    'Status': getStatusLabel(client.statusJornada),
+    'Última Atualização': formatDateTime(client.ultimaAtualizacao),
+    'Qtde Visitas': client.qtdeVisitas,
+    'Observações': client.observacoes || '',
+    'Corretor ID': client.corretorId || '',
+    'Criado Em': formatDateTime(client.createdAt),
+    'Atualizado Em': formatDateTime(client.updatedAt),
+    // Dados de venda
+    'Código Imóvel Venda': client.dadosVenda?.codigoImovel || '',
+    'EN Responsável': client.dadosVenda?.enResponsavel || '',
+    'Valor Venda': client.dadosVenda?.valorVenda || '',
+    'Comissão Contrato %': client.dadosVenda?.comissaoContrato || '',
+    'Minha Comissão %': client.dadosVenda?.minhaComissao || '',
+    'Valor Previsto': client.dadosVenda?.valorPrevisto || '',
+    'Valor Recebido': client.dadosVenda?.valorRecebido || '',
+    'Data Venda': client.dadosVenda?.dataVenda ? formatDateTime(new Date(client.dadosVenda.dataVenda)) : '',
+  }));
+  
+  const clientsSheet = XLSX.utils.json_to_sheet(clientsData);
+  XLSX.utils.book_append_sheet(workbook, clientsSheet, 'Clientes');
+
+  // Interactions sheet
+  const interactionsData = interactions.map(interaction => {
+    const client = clients.find(c => c.id === interaction.clientId);
+    return {
+      'ID': interaction.id,
+      'Cliente': client?.nome || 'N/A',
+      'Cliente ID': interaction.clientId,
+      'Data': formatDateTime(interaction.data),
+      'Meio': interaction.meio,
+      'Resumo': interaction.resumo,
+      'Corretor ID': interaction.corretorId,
+      'Criado Em': formatDateTime(interaction.createdAt),
+    };
+  });
+  
+  const interactionsSheet = XLSX.utils.json_to_sheet(interactionsData);
+  XLSX.utils.book_append_sheet(workbook, interactionsSheet, 'Interações');
+
+  // Visits sheet
+  const visitsData = visits.map(visit => {
+    const client = clients.find(c => c.id === visit.clientId);
+    return {
+      'ID': visit.id,
+      'Cliente': client?.nome || 'N/A',
+      'Cliente ID': visit.clientId,
+      'Data': formatDateTime(visit.data),
+      'Código Imóvel': visit.codigoImovel,
+      'Endereço': visit.enderecoImovel,
+      'Feedback': visit.feedback,
+      'Corretor ID': visit.corretorId,
+      'Criado Em': formatDateTime(visit.createdAt),
+    };
+  });
+  
+  const visitsSheet = XLSX.utils.json_to_sheet(visitsData);
+  XLSX.utils.book_append_sheet(workbook, visitsSheet, 'Visitas');
+
+  // Team Members sheet
+  if (teamMembers && teamMembers.length > 0) {
+    const teamData = teamMembers.map(member => ({
+      'ID': member.id,
+      'Nome': member.nome,
+      'Email': member.email,
+      'Cargo': member.role === 'admin' ? 'Administrador' : 'Corretor',
+      'Ativo': member.ativo ? 'Sim' : 'Não',
+      'Status Assinatura': member.subscriptionStatus || '',
+      'Criado Em': formatDateTime(member.createdAt),
+    }));
+    
+    const teamSheet = XLSX.utils.json_to_sheet(teamData);
+    XLSX.utils.book_append_sheet(workbook, teamSheet, 'Equipe');
+  }
+
+  // Notifications sheet
+  if (notifications && notifications.length > 0) {
+    const notificationsData = notifications.map(notification => ({
+      'ID': notification.id,
+      'Título': notification.titulo,
+      'Mensagem': notification.mensagem,
+      'Tipo': notification.tipo,
+      'Remetente': notification.remetenteNome,
+      'Lida': notification.lida ? 'Sim' : 'Não',
+      'Criado Em': formatDateTime(notification.createdAt),
+    }));
+    
+    const notificationsSheet = XLSX.utils.json_to_sheet(notificationsData);
+    XLSX.utils.book_append_sheet(workbook, notificationsSheet, 'Notificações');
+  }
+
+  // Metadata sheet
+  const metadataSheet = XLSX.utils.json_to_sheet([{
+    'Data do Backup': formatDateTime(new Date()),
+    'Total Clientes': clients.length,
+    'Total Interações': interactions.length,
+    'Total Visitas': visits.length,
+    'Total Membros Equipe': teamMembers?.length || 0,
+    'Total Notificações': notifications?.length || 0,
+    'Versão': '1.0',
+  }]);
+  XLSX.utils.book_append_sheet(workbook, metadataSheet, 'Metadados');
+
+  // Generate and download
+  const fileName = `backup_completo_${format(new Date(), 'yyyy-MM-dd_HHmm')}.xlsx`;
+  XLSX.writeFile(workbook, fileName);
 };
