@@ -7,7 +7,6 @@ import {
   updateDoc, 
   doc, 
   deleteDoc,
-  orderBy,
   Timestamp,
   where
 } from 'firebase/firestore';
@@ -23,35 +22,30 @@ export const useInteractions = (clientId?: string) => {
   useEffect(() => {
     if (!user) return;
 
+    // Queries simples sem orderBy para evitar necessidade de índice composto
     let q;
     if (clientId) {
-      // Filtrar por cliente específico
       q = query(
         collection(db, 'interactions'), 
-        where('clientId', '==', clientId),
-        orderBy('data', 'desc')
+        where('clientId', '==', clientId)
       );
     } else if (companyId) {
-      // Filtrar por empresa
       q = query(
         collection(db, 'interactions'), 
-        where('companyId', '==', companyId),
-        orderBy('data', 'desc')
+        where('companyId', '==', companyId)
       );
     } else {
-      // Fallback: apenas interações do próprio usuário
       q = query(
         collection(db, 'interactions'), 
-        where('corretorId', '==', user.uid),
-        orderBy('data', 'desc')
+        where('corretorId', '==', user.uid)
       );
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: Interaction[] = snapshot.docs.map((doc) => {
-        const docData = doc.data();
+      const data: Interaction[] = snapshot.docs.map((docSnap) => {
+        const docData = docSnap.data();
         return {
-          id: doc.id,
+          id: docSnap.id,
           clientId: docData.clientId,
           data: docData.data?.toDate() || new Date(),
           meio: docData.meio,
@@ -61,7 +55,14 @@ export const useInteractions = (clientId?: string) => {
           createdAt: docData.createdAt?.toDate() || new Date(),
         };
       });
+      
+      // Ordenar no cliente
+      data.sort((a, b) => b.data.getTime() - a.data.getTime());
+      
       setInteractions(data);
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao buscar interações:', error);
       setLoading(false);
     });
 

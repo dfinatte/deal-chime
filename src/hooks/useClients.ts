@@ -7,7 +7,6 @@ import {
   updateDoc, 
   doc, 
   deleteDoc,
-  orderBy,
   Timestamp,
   where
 } from 'firebase/firestore';
@@ -23,36 +22,34 @@ export const useClients = () => {
   useEffect(() => {
     if (!user) return;
 
+    // Usar query simples sem orderBy para evitar necessidade de índice composto
+    // A ordenação será feita no cliente
     let q;
     if (isAdmin && companyId) {
       // Admin vê todos os clientes da empresa
       q = query(
         collection(db, 'clients'), 
-        where('companyId', '==', companyId),
-        orderBy('createdAt', 'desc')
+        where('companyId', '==', companyId)
       );
     } else if (companyId) {
       // Corretor vê apenas seus próprios clientes
       q = query(
         collection(db, 'clients'), 
-        where('companyId', '==', companyId),
-        where('corretorId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        where('corretorId', '==', user.uid)
       );
     } else {
       // Fallback: usuário sem empresa vê apenas seus próprios clientes
       q = query(
         collection(db, 'clients'), 
-        where('corretorId', '==', user.uid),
-        orderBy('createdAt', 'desc')
+        where('corretorId', '==', user.uid)
       );
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const clientsData: Client[] = snapshot.docs.map((doc) => {
-        const data = doc.data();
+      const clientsData: Client[] = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
         return {
-          id: doc.id,
+          id: docSnap.id,
           nome: data.nome,
           telefone: data.telefone,
           dataCadastro: data.dataCadastro?.toDate() || new Date(),
@@ -71,7 +68,14 @@ export const useClients = () => {
           updatedAt: data.updatedAt?.toDate() || new Date(),
         };
       });
+      
+      // Ordenar no cliente por data de criação (mais recente primeiro)
+      clientsData.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      
       setClients(clientsData);
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao buscar clientes:', error);
       setLoading(false);
     });
 
