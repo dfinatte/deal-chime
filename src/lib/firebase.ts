@@ -17,6 +17,6 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 // Configura persistência local para manter usuário logado mesmo após fechar o navegador
-setPersistence(auth, browserLocalPersistence);
+setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 export default app;
