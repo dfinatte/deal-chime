@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   collection, 
   query, 
@@ -11,7 +11,7 @@ import {
   where,
   getDocs
 } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { TeamMember, UserRole } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,8 +62,11 @@ export const useTeam = () => {
     return unsubscribe;
   }, [user, isAdmin, companyId]);
 
-  const addMember = async (memberData: { email: string; nome: string; role: UserRole; senha: string }) => {
-    if (!user || !isAdmin || !companyId) throw new Error('Não autorizado');
+  const addMember = async (memberData: { email: string; nome: string; role: UserRole; senha: string }, adminPassword: string) => {
+    if (!user || !user.email || !isAdmin || !companyId) throw new Error('Não autorizado');
+    
+    // Salvar email do admin para re-autenticação
+    const adminEmail = user.email;
     
     // Check if email already exists
     const q = query(collection(db, 'teamMembers'), where('email', '==', memberData.email));
@@ -73,20 +76,33 @@ export const useTeam = () => {
       throw new Error('Este email já está cadastrado');
     }
 
-    // Create Firebase Auth user
-    const userCredential = await createUserWithEmailAndPassword(auth, memberData.email, memberData.senha);
-    
-    // Add to teamMembers collection with companyId
-    await addDoc(collection(db, 'teamMembers'), {
-      email: memberData.email,
-      nome: memberData.nome,
-      role: memberData.role,
-      ativo: true,
-      companyId: companyId,
-      createdAt: Timestamp.now(),
-      trialStartDate: Timestamp.now(),
-      subscriptionStatus: 'active', // Membros herdam status da empresa
-    });
+    try {
+      // Create Firebase Auth user (isso vai logar automaticamente o novo usuário)
+      await createUserWithEmailAndPassword(auth, memberData.email, memberData.senha);
+      
+      // Add to teamMembers collection with companyId
+      await addDoc(collection(db, 'teamMembers'), {
+        email: memberData.email,
+        nome: memberData.nome,
+        role: memberData.role,
+        ativo: true,
+        companyId: companyId,
+        createdAt: Timestamp.now(),
+        trialStartDate: Timestamp.now(),
+        subscriptionStatus: 'active',
+      });
+
+      // Re-autenticar o admin para voltar à sessão original
+      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+    } catch (error) {
+      // Se algo der errado, tentar re-autenticar o admin
+      try {
+        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+      } catch (reAuthError) {
+        console.error('Erro ao re-autenticar admin:', reAuthError);
+      }
+      throw error;
+    }
   };
 
   const updateMember = async (id: string, memberData: Partial<TeamMember>) => {
