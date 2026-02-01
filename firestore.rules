@@ -43,16 +43,19 @@ service cloud.firestore {
 
     // Team Members Collection
     match /teamMembers/{memberId} {
-      // Allow read for authenticated users of the same company
+      // Allow read for authenticated users of the same company OR reading own document
       allow read: if isAuthenticated() && (
         request.auth.uid == memberId || 
-        belongsToCompany(resource.data.companyId)
+        (exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid)) &&
+         belongsToCompany(resource.data.companyId))
       );
       
-      // Allow create with validation
+      // Allow create: user can create their own profile, or admin can create for their company
       allow create: if isAuthenticated() && (
-        isAdmin() || 
-        request.auth.uid == memberId
+        // New user creating their own profile during registration
+        request.auth.uid == memberId ||
+        // Admin creating team member for their company
+        (exists(/databases/$(database)/documents/teamMembers/$(request.auth.uid)) && isAdmin())
       ) && 
         isValidString(request.resource.data.nome, 100) &&
         isValidEmail(request.resource.data.email) &&
