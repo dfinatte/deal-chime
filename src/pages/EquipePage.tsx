@@ -61,6 +61,7 @@ const EquipePage: React.FC = () => {
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -69,6 +70,7 @@ const EquipePage: React.FC = () => {
     senha: '',
     role: 'corretor' as UserRole,
   });
+  const [adminPassword, setAdminPassword] = useState('');
   const [formLoading, setFormLoading] = useState(false);
 
   if (!isAdmin) {
@@ -147,13 +149,19 @@ const EquipePage: React.FC = () => {
       return;
     }
 
+    if (!adminPassword) {
+      toast.error('Digite sua senha de administrador para confirmar');
+      return;
+    }
+
     setFormLoading(true);
 
     try {
-      await addMember(formData);
+      await addMember(formData, adminPassword);
       toast.success('Membro adicionado com sucesso!');
       setDialogOpen(false);
       setFormData({ nome: '', email: '', senha: '', role: 'corretor' });
+      setAdminPassword('');
     } catch (error: unknown) {
       if (error instanceof Error) {
         toast.error(error.message);
@@ -305,6 +313,32 @@ const EquipePage: React.FC = () => {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <Label htmlFor="adminPassword">Sua Senha (Confirmação)</Label>
+                  <div className="relative">
+                    <Input
+                      id="adminPassword"
+                      type={showAdminPassword ? 'text' : 'password'}
+                      placeholder="Digite sua senha para confirmar"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    >
+                      {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Necessário para manter sua sessão após criar o novo usuário
+                  </p>
                 </div>
 
                 <Button type="submit" className="w-full" disabled={formLoading}>
