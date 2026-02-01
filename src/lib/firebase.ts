@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBmpq3EM7b6OJAJPevf9bB_m3eiJrTiM08",
@@ -15,4 +15,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Configura persistência local para manter usuário logado mesmo após fechar o navegador
+setPersistence(auth, browserLocalPersistence);
+
 export default app;
