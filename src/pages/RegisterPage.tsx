@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -271,7 +271,7 @@ const RegisterPage: React.FC = () => {
         ativo: true,
       });
 
-      await addDoc(collection(db, 'teamMembers'), {
+      await setDoc(doc(db, 'teamMembers', userId), {
         email: emailAdmin,
         nome: nomeAdmin,
         telefone: telefoneAdmin.replace(/\D/g, ''),
@@ -299,7 +299,7 @@ const RegisterPage: React.FC = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, emailCorretor, senhaCorretor);
       const userId = userCredential.user.uid;
 
-      await addDoc(collection(db, 'teamMembers'), {
+      await setDoc(doc(db, 'teamMembers', userId), {
         email: emailCorretor,
         nome: nomeCorretor,
         telefone: telefoneCorretor.replace(/\D/g, ''),
@@ -342,7 +342,7 @@ const RegisterPage: React.FC = () => {
         ativo: true,
       });
 
-      await addDoc(collection(db, 'teamMembers'), {
+      await setDoc(doc(db, 'teamMembers', userId), {
         email: emailGestor,
         nome: nomeGestor,
         telefone: telefoneGestor.replace(/\D/g, ''),
