@@ -67,8 +67,15 @@ service cloud.firestore {
         (isAdmin() && belongsToCompany(resource.data.companyId)) ||
         // Users can update their own profile but NOT role or companyId
         (request.auth.uid == memberId && 
-         request.resource.data.role == resource.data.role &&
-         request.resource.data.companyId == resource.data.companyId)
+          // role nunca pode mudar pelo próprio usuário
+          request.resource.data.role == resource.data.role &&
+          (
+            // caminho padrão: companyId não muda
+            request.resource.data.companyId == resource.data.companyId ||
+            // migração segura: se companyId estava vazio, permitir setar para o próprio uid (uma única vez)
+            (resource.data.companyId == null && request.resource.data.companyId == request.auth.uid)
+          )
+        )
       );
       
       // Only admins can delete members in their company

@@ -40,6 +40,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (memberDoc.exists()) {
           const data = memberDoc.data();
+
+          // Auto-correção para contas antigas (principalmente corretor_independente)
+          // que foram criadas sem companyId e acabam tomando permission-denied.
+          const shouldBackfillCompanyId =
+            data.role === 'admin' &&
+            !data.companyId &&
+            data.tipo === 'corretor_independente';
+
+          const normalizedCompanyId = shouldBackfillCompanyId ? firebaseUser.uid : data.companyId;
+
+          if (shouldBackfillCompanyId) {
+            try {
+              await setDoc(
+                doc(db, 'teamMembers', firebaseUser.uid),
+                { companyId: firebaseUser.uid },
+                { merge: true }
+              );
+            } catch {
+              // se falhar, seguimos e o app continuará acusando permission-denied (regras podem não permitir ainda)
+            }
+          }
           
           setTeamMember({
             id: memberDoc.id,
@@ -48,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: data.role,
             ativo: data.ativo,
             createdAt: data.createdAt?.toDate() || new Date(),
-            companyId: data.companyId,
+            companyId: normalizedCompanyId,
           });
         } else {
           if (firebaseUser.email === INITIAL_ADMIN_EMAIL) {

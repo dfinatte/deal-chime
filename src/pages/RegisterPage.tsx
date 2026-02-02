@@ -310,6 +310,9 @@ const RegisterPage: React.FC = () => {
         role: 'admin', // Independent broker is admin of their own account
         tipo: 'corretor_independente',
         ativo: true,
+        // Importante: o corretor independente precisa ter um companyId para passar
+        // nas regras de segurança (belongsToCompany).
+        companyId: userId,
         ownerId: userId,
         createdAt: Timestamp.now(),
       });
