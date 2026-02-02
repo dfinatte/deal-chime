@@ -5,7 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged 
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { TeamMember, UserRole } from '@/types';
 
@@ -58,29 +58,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               role: 'admin',
               ativo: true,
               createdAt: new Date(),
+              // Importante: para o admin inicial, a própria conta é a “empresa”
+              // (isso evita permission-denied nas coleções que validam companyId)
+              companyId: firebaseUser.uid,
             };
             await setDoc(doc(db, 'teamMembers', firebaseUser.uid), newMember);
             setTeamMember({ id: firebaseUser.uid, ...newMember });
           } else {
-            const q = query(collection(db, 'teamMembers'), where('email', '==', firebaseUser.email));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-              const memberData = querySnapshot.docs[0].data();
-              
-              setTeamMember({
-                id: querySnapshot.docs[0].id,
-                email: memberData.email,
-                nome: memberData.nome,
-                role: memberData.role,
-                ativo: memberData.ativo,
-                createdAt: memberData.createdAt?.toDate() || new Date(),
-                companyId: memberData.companyId,
-              });
-            } else {
-              await firebaseSignOut(auth);
-              setTeamMember(null);
-            }
+            // Se o usuário existe no Auth mas não tem perfil em teamMembers/{uid},
+            // ele não está autorizado (ou o registro não criou o documento corretamente).
+            await firebaseSignOut(auth);
+            setTeamMember(null);
           }
         }
       } else {
@@ -94,17 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const isInitialAdmin = email === INITIAL_ADMIN_EMAIL;
-    
-    if (!isInitialAdmin) {
-      const q = query(collection(db, 'teamMembers'), where('email', '==', email), where('ativo', '==', true));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error('Email não autorizado. Entre em contato com o administrador.');
-      }
-    }
-    
+    // Nunca consulte o Firestore antes do login: as regras exigem request.auth.
+    // A autorização é validada depois no onAuthStateChanged (verificação do teamMembers/{uid}).
     await signInWithEmailAndPassword(auth, email, password);
   };
 
